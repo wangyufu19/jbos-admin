@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jbos.admin.infrastructure.repository.wf.mapper.ProcessInstMapper">
+    <!--查询流程实例数据-->
+    <select id="getProcessInstList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.wf.ProcessInst">
+        SELECT * FROM (
+            SELECT
+                T.ID,
+                T.PROCINSTID,
+                T.PROCDEFID,
+                T.BIZNO,
+                (SELECT DICTNAME FROM JBOS_DICT_CODE WHERE TYPEID='JBOS_PROC_BIZTYPE' AND DICTID=T.BIZTYPE  LIMIT 1) BIZTYPE,
+                T.USERID,
+                T.BUSINESSKEY,
+                T.STARTTIME,
+                T.ENDTIME,
+                T.PROCSTATE
+            FROM WF_PROCESS_INST T
+            WHERE T.ISVALID=1
+            <if test="userId != null and userId != ''">
+                AND T.USERID=#{userId}
+            </if>
+            <if test="bizNoS != null and bizNoS != ''">
+                AND T.BIZNO LIKE '%${bizNoS}%'
+            </if>
+            <if test="bizTypeS != null and bizTypeS != ''">
+                AND T.BIZTYPE=#{bizTypeS}
+            </if>
+        ) T1
+        ORDER BY T1.STARTTIME DESC
+    </select>
+    <!--新增流程实例数据-->
+    <insert id="addProcessInst" parameterType="com.jbos.admin.domain.entity.wf.ProcessInst">
+        INSERT WF_PROCESS_INST(
+            ID,
+            PROCINSTID,
+            PROCDEFID,
+            BIZID,
+            BIZNO,
+            BIZTYPE,
+            USERID,
+            BUSINESSKEY,
+            STARTTIME,
+            PROCSTATE,
+            ROUTEURL,
+            CREATEUSERID,
+            CREATETIME
+        )VALUE(
+            #{id},
+            #{procInstId},
+            #{procDefId},
+            #{bizId},
+            #{bizNo},
+            #{bizType},
+            #{userId},
+            #{businessKey},
+            #{startTime},
+            '20',
+            #{routeUrl},
+            #{createUserId},
+            #{createTime}
+        )
+    </insert>
+    <!--更新流程状态-->
+    <update id="updateProcState" parameterType="com.jbos.admin.domain.entity.wf.ProcessInst">
+        UPDATE WF_PROCESS_INST
+        SET PROCSTATE=#{procState},ENDTIME=#{endTime}
+        WHERE PROCINSTID=#{procInstId}
+    </update>
+</mapper>

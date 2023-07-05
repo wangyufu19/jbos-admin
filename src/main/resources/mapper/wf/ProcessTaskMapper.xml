@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jbos.admin.infrastructure.repository.wf.mapper.ProcessTaskMapper">
+    <!--查询用户待办任务数据-->
+    <select id="getUserTaskList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        SELECT * FROM (
+            SELECT
+                t.ID,
+                t.PROCINSTID,
+                t1.PROCDEFID,
+                T1.BIZID,
+                T1.BIZNO,
+                (SELECT DICTNAME FROM JBOS_DICT_CODE WHERE TYPEID='JBOS_PROC_BIZTYPE' AND DICTID=T1.BIZTYPE  LIMIT 1) BIZTYPE,
+                t.TASKID,
+                t.ACTIVITYID,
+                t.ACTIVITYNAME,
+                t.STARTTIME,
+                t.ASSIGNEE,
+                T1.ROUTEURL,
+                '处理中' TASKSTATE
+            FROM WF_PROCESS_TASK t
+            LEFT JOIN WF_PROCESS_INST T1 ON t.PROCINSTID=T1.PROCINSTID
+            WHERE t.ASSIGNEE=#{userId} and t.TASKSTATE='20' AND T1.PROCSTATE!='80'
+
+            <if test="bizNoS != null and bizNoS != ''">
+                AND T1.BIZNO LIKE '%${bizNoS}%'
+            </if>
+            <if test="bizTypeS != null and bizTypeS != ''">
+                AND T1.BIZTYPE=#{bizTypeS}
+            </if>
+        ) T
+        ORDER BY T.STARTTIME
+    </select>
+    <!--查询用户已办任务数据-->
+    <select id="getUserTaskProcessedList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        SELECT * FROM (
+            SELECT
+                t.ID,
+                t.PROCINSTID,
+                t1.PROCDEFID,
+                T1.BIZID,
+                T1.BIZNO,
+                (SELECT DICTNAME FROM JBOS_DICT_CODE WHERE TYPEID='JBOS_PROC_BIZTYPE' AND DICTID=T1.BIZTYPE  LIMIT 1) BIZTYPE,
+                t.TASKID,
+                t.ACTIVITYID,
+                t.ACTIVITYNAME,
+                t.STARTTIME,
+                t.ENDTIME,
+                t.ASSIGNEE,
+                T1.ROUTEURL,
+                '已处理' TASKSTATE
+            FROM WF_PROCESS_TASK t
+            LEFT JOIN WF_PROCESS_INST T1 ON t.PROCINSTID=T1.PROCINSTID
+            WHERE t.ASSIGNEE=#{userId} and t.TASKSTATE IN ('90','99')
+            <if test="bizNoS != null and bizNoS != ''">
+                AND T1.BIZNO LIKE '%${bizNoS}%'
+            </if>
+            <if test="bizTypeS != null and bizTypeS != ''">
+                AND T1.BIZTYPE=#{bizTypeS}
+            </if>
+        ) T
+        ORDER BY T.STARTTIME DESC
+    </select>
+    <!--查询流程任务处理明细列表-->
+    <select id="getProcessTaskDetailList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        SELECT
+            t.ID,
+            t.PROCINSTID,
+            t.TASKID,
+            t.ACTIVITYNAME,
+            t.ACTIVITYID,
+            t.STARTTIME,
+            t.ENDTIME,
+            t.ASSIGNEE,
+            (SELECT CONCAT(emp.EMPNAME,'(',emp.BADGE,') ')FROM JBOS_EMP emp WHERE emp.BADGE=t.ASSIGNEE  limit 1) ASSIGNEENAME,
+            t.TASKSTATE,
+            t.OPINION,
+            t.OPINIONDESC
+        FROM WF_PROCESS_TASK t
+        WHERE t.PROCINSTID=#{procInstId} AND t.TASKSTATE IN ('20','90','99')
+        <if test="activityId != null and activityId != ''">
+            AND T.ACTIVITYID=#{activityId}
+        </if>
+        ORDER BY t.STARTTIME
+    </select>
+    <!--查询流程任务处理步骤-->
+    <select id="getProcessTaskStepList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.wf.TaskStep">
+        SELECT
+            t.ID,
+            t.PROCINSTID,
+            t.TASKID,
+            t.ACTIVITYNAME title,
+            t.ACTIVITYID,
+            t.STARTTIME,
+            t.ENDTIME,
+            (SELECT CONCAT(emp.EMPNAME,'(',emp.BADGE,') ',IFNULL(t.ENDTIME,''))FROM JBOS_EMP emp WHERE emp.BADGE=t.ASSIGNEE  limit 1) description,
+            t.TASKSTATE,
+            CASE
+            WHEN t.TASKSTATE='90' || t.TASKSTATE='99' THEN 'success'
+            ELSE 'process'
+            END status
+        FROM WF_PROCESS_TASK t
+        WHERE t.PROCINSTID=#{procInstId} AND t.TASKSTATE IN ('20','90','99')
+        ORDER BY t.STARTTIME
+    </select>
+    <!--查询实例任务的所有已处理的任务数据(除当前处理用户任务)-->
+    <select id="getInstanceTaskProcessedAssigneeList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        SELECT
+            t.ID,
+            t.PROCINSTID,
+            t.TASKID,
+            t.ACTIVITYID,
+            t.ACTIVITYNAME,
+            t.STARTTIME,
+            t.ENDTIME,
+            t.ASSIGNEE
+        FROM WF_PROCESS_TASK t
+        LEFT JOIN WF_PROCESS_INST T1 ON t.PROCINSTID=T1.PROCINSTID
+        WHERE t.ACTIVITYID=#{currentActivityId} AND t.ASSIGNEE!=#{userId} AND t.TASKSTATE NOT IN ('90','99')
+    </select>
+    <!--查询流程任务的领取人-->
+    <select id="getTaskAssigneeList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+			T.ID,
+            T.BADGE,
+            T.EMPNAME,
+            T2.ROLECODE,
+            T2.ROLENAME
+        FROM JBOS_EMP T
+        INNER JOIN JBOS_USER_ROLE T1 ON T.ID=T1.USERID
+        LEFT JOIN JBOS_ROLE T2 ON T1.ROLEID=T2.ID
+        WHERE T.ISVALID=1 AND T2.ROLECODE=#{nextActivityId}
+        <if test="nextActivityId == 'ROLE_DEP_LEADER' or nextActivityId == 'ROLE_CHARGE_LEADER'">
+            AND T.DEPID=#{depId}
+        </if>
+    </select>
+    <!--新增流程任务数据-->
+    <insert id="addProcessTask" parameterType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        INSERT WF_PROCESS_TASK(
+            ID,
+            PROCINSTID,
+            ACTIVITYID,
+            ACTIVITYNAME,
+            ASSIGNEE,
+            TASKSTATE,
+            STARTTIME
+        )VALUE(
+            #{id},
+            #{procInstId},
+            #{activityId},
+            #{activityName},
+            #{assignee},
+           '20',
+            #{startTime}
+        )
+    </insert>
+    <!--更新流程任务审批意见-->
+    <update id="updateProcessTaskOpinion" parameterType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        UPDATE WF_PROCESS_TASK
+        SET TASKID=#{taskId},OPINION=#{opinion},OPINIONDESC=#{opinionDesc},ENDTIME=#{endTime},TASKSTATE=#{taskState}
+        WHERE PROCINSTID=#{procInstId} AND ACTIVITYID=#{activityId} AND ASSIGNEE=#{assignee} AND TASKSTATE='20'
+    </update>
+
+    <!--更新流程任务撤回后未审批的任务状态为NONE-->
+    <update id="updateDrawbackPostProcessTask" parameterType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        <![CDATA[
+        UPDATE WF_PROCESS_TASK
+        SET ENDTIME=#{endTime},TASKSTATE='10'
+        WHERE PROCINSTID=#{procInstId} AND TASKSTATE='20' AND STARTTIME<#{startTime}
+        ]]>
+    </update>
+    <!--更新流程节点处理后未审批的所有任务状态为NONE(除当前用户任务)-->
+    <update id="updateNoneStatePostHandleTask" parameterType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        <![CDATA[
+        UPDATE WF_PROCESS_TASK
+        SET ENDTIME=#{endTime},TASKSTATE='10'
+        WHERE PROCINSTID=#{procInstId} AND ACTIVITYID=#{activityId} AND ASSIGNEE!=#{assignee} AND TASKSTATE='20'
+        ]]>
+    </update>
+    <!--更新流程任务审批状态-->
+    <update id="updateProcessTaskState" parameterType="com.jbos.admin.domain.entity.wf.ProcessTask">
+        UPDATE WF_PROCESS_TASK
+        SET TASKSTATE=#{taskState},ENDTIME=#{endTime}
+        WHERE PROCINSTID=#{procInstId} AND ACTIVITYID=#{activityId} AND ASSIGNEE=#{assignee} AND TASKSTATE='20'
+    </update>
+
+</mapper>

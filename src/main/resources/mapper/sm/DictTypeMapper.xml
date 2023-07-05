@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jbos.admin.infrastructure.repository.sm.mapper.DictTypeMapper">
+    <!--得到字典类型数据-->
+    <select id="getDictTypeList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.sm.DictType">
+        SELECT
+            TYPEID,
+            TYPENAME
+        FROM JBOS_DICT_TYPE
+        WHERE 1=1
+        <if test="typeIdS != null and typeIdS != ''">
+            AND TYPEID LIKE '%${typeIdS}%'
+        </if>
+        <if test="typeNameS != null and typeNameS != ''">
+            AND TYPENAME LIKE '%${typeNameS}%'
+        </if>
+        ORDER BY TYPEID
+    </select>
+    <!--新增字典类型-->
+    <insert id="addDictType" parameterType="com.jbos.admin.domain.entity.sm.DictType">
+        INSERT INTO JBOS_DICT_TYPE(
+            TYPEID,
+            TYPENAME
+        )VALUES(
+            #{typeId},
+            #{typeName}
+        )
+    </insert>
+    <!--更新字典类型-->
+    <update id="updateDictType" parameterType="com.jbos.admin.domain.entity.sm.DictType">
+        UPDATE JBOS_DICT_TYPE
+        SET TYPENAME=#{typeName}
+        WHERE TYPEID=#{typeId}
+    </update>
+
+</mapper>

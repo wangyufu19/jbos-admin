@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jbos.admin.infrastructure.repository.sm.mapper.UserMapper">
+    <!--根据ID查询用户信息-->
+    <select id="getUserInfoById" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT A.ID,A.NICKNAME,A.USERNAME,A.USERSTATUS
+        FROM JBOS_USER A
+        WHERE A.ID=#{userid}
+    </select>
+    <!--根据登录名称查询用户信息-->
+    <select id="getUserInfoByLoginName" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT A.ID,A.NICKNAME,A.USERNAME,A.USERSTATUS
+        FROM JBOS_USER A
+        WHERE A.USERNAME=#{loginName}
+    </select>
+    <!--查询用户信息-->
+    <select id="getUserInfo" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT A.ID,A.NICKNAME,A.USERNAME,B.DEPID,C.DEPNAME,B.ORGID,A.USERSTATUS
+        FROM JBOS_USER A
+        LEFT JOIN JBOS_EMP B ON A.LOGINNAME=B.BADGE
+		LEFT JOIN JBOS_DEP C ON B.DEPID=C.ID
+        WHERE A.USERNAME=#{loginName}
+    </select>
+    <!--新增用户信息-->
+    <insert id="addUserInfo" parameterType="java.util.Map">
+        INSERT INTO JBOS_USER(
+            ID,USERNAME,NICKNAME,PASSWORD,SALT,USERSTATUS
+        )VALUES (
+            #{id},#{username},#{nickname},#{password},#{salt},'running'
+        )
+    </insert>
+    <!--新增用户默认角色-->
+    <insert id="addUserDefaultRole" parameterType="java.util.Map">
+        INSERT INTO JBOS_USER_ROLE(USERID,ROLEID)
+        VALUES(#{userId},(SELECT ID FROM JBOS_ROLE WHERE ROLECODE='ROLE_DEFAULT'))
+    </insert>
+    <select id="getUserWorkList" resultType="java.util.Map">
+        SELECT
+           task.ID_,task.PROC_INST_ID_,task.PROC_DEF_ID_,task.NAME_,task.CREATE_TIME_
+        FROM camunda.act_ru_task task
+        WHERE task.ASSIGNEE_=#{userId}
+    </select>
+</mapper>

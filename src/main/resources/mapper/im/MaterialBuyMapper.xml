@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jbos.admin.infrastructure.repository.im.mapper.MaterialBuyMapper">
+    <!--查询物品采购业务列表-->
+    <select id="getMaterialBuyList" parameterType="java.util.Map" resultType="com.jbos.admin.domain.entity.im.MaterialBuy">
+        SELECT
+           T.ID,
+           T.BIZNO,
+           T.INSTID,
+           T.APPLYUSERID,
+           (SELECT EMP.EMPNAME FROM JBOS_EMP EMP WHERE EMP.BADGE=T.APPLYUSERID) AS APPLYUSERNAME,
+           T.APPLYDEPID,
+           (SELECT DEP.DEPNAME FROM JBOS_DEP DEP WHERE DEP.ID=T.APPLYDEPID) AS APPLYDEPNAME,
+           T.FEETYPE,
+           T.APPLYTIME,
+           T.TOTALAMT,
+           T.GMOTIME,
+           T.BIZSTATE
+        FROM IM_MATERIAL_BUY T
+        WHERE T.ISVALID=1 AND T.APPLYUSERID=#{userId}
+        <if test="bizNoS != null and bizNoS != ''">
+            AND T.BIZNO LIKE '%${bizNoS}%'
+        </if>
+        <if test="feeTypeS != null and feeTypeS != ''">
+            AND T.FEETYPE = #{feeTypeS}
+        </if>
+        <if test="applyTimeS != null and applyTimeS != ''">
+            AND date_format(T.APPLYTIME,'%Y-%m-%d')= #{applyTimeS}
+        </if>
+    </select>
+    <!--查询物品采购业务-->
+    <select id="getMaterialBuyById" parameterType="java.lang.String" resultType="com.jbos.admin.domain.entity.im.MaterialBuy">
+         SELECT
+           T.ID,
+           T.BIZNO,
+           T.INSTID,
+           T.APPLYUSERID,
+           (SELECT EMP.EMPNAME FROM JBOS_EMP EMP WHERE EMP.BADGE=T.APPLYUSERID) AS APPLYUSERNAME,
+           T.APPLYDEPID,
+           (SELECT DEP.DEPNAME FROM JBOS_DEP DEP WHERE DEP.ID=T.APPLYDEPID) AS APPLYDEPNAME,
+           T.FEETYPE,
+           T.APPLYTIME,
+           T.TOTALAMT,
+           T.GMOTIME,
+           T.PURPOSE,
+           T.BIZSTATE
+        FROM IM_MATERIAL_BUY T
+        WHERE T.ID=#{id}
+    </select>
+    <!--新增物品采购业务-->
+    <insert id="addMaterialBuy" parameterType="java.util.Map">
+        INSERT INTO IM_MATERIAL_BUY(
+            ID,
+            BIZNO,
+            INSTID,
+            APPLYUSERID,
+            APPLYDEPID,
+            FEETYPE,
+            APPLYTIME,
+            TOTALAMT,
+            GMOTIME,
+            PURPOSE
+        )VALUES(
+            #{ID},
+            #{BIZNO},
+            #{INSTID},
+            #{APPLYUSERID},
+            #{APPLYDEPID},
+            #{FEETYPE},
+            STR_TO_DATE(#{APPLYTIME},'%Y-%m-%d'),
+            #{TOTALAMT},
+            STR_TO_DATE(#{GMOTIME},'%Y-%m-%d'),
+            #{PURPOSE}
+        )
+    </insert>
+    <!--修改物品采购业务-->
+    <update id="updateMaterialBuy" parameterType="java.util.Map">
+        UPDATE IM_MATERIAL_BUY
+        SET
+            FEETYPE=#{FEETYPE},
+            TOTALAMT=#{TOTALAMT},
+            GMOTIME=STR_TO_DATE(#{GMOTIME},'%Y-%m-%d'),
+            PURPOSE=#{PURPOSE}
+        WHERE ID=#{ID}
+    </update>
+    <!--删除物品采购业务-->
+    <delete id="deleteMaterialBuy" parameterType="java.util.Map">
+        DELETE FROM IM_MATERIAL_BUY WHERE ID=#{ID}
+    </delete>
+    <!--更新物品采购实例ID-->
+    <update id="updateMaterialInstIdAndBizState" parameterType="java.util.Map">
+        UPDATE IM_MATERIAL_BUY
+        SET
+            INSTID=#{INSTID},
+            BIZSTATE=#{BIZSTATE}
+        WHERE BIZNO=#{BIZNO}
+    </update>
+    <!--更新物品采购业务状态-->
+    <update id="updateMaterialBizState" parameterType="java.util.Map">
+        UPDATE IM_MATERIAL_BUY
+        SET
+            BIZSTATE=#{BIZSTATE}
+        WHERE BIZNO=#{BIZNO}
+    </update>
+</mapper>
