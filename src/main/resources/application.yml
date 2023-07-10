@@ -55,7 +55,7 @@ spring:
 apollo:
   meta: http://127.0.0.1:8080
   bootstrap:
-    enabled: true                            #是否开启 Apollo
+    enabled: false                            #是否开启 Apollo
     namespaces: jbos-admin.yml,application #设置 Namespace
     eagerLoad:
       enabled: false                         #将 Apollo 加载提到初始化日志系统之前

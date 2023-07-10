@@ -260,12 +260,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public class JwtAuthenticationFilter extends OncePerRequestFilter {
         private AntPathMatcher antPathMatcher=new AntPathMatcher(File.separator);
 
-        private boolean isExcludeUri(String requestURI){
+        private boolean isExcludeUri(String contextPath,String requestURI){
             log.info("requestURI={}",requestURI);
             String[] excludeUris=excludeUri.split(",");
             boolean matches=false;
             for(String uri:excludeUris){
-                matches=antPathMatcher.match(uri,requestURI);
+                matches=antPathMatcher.match(contextPath+uri,requestURI);
                 if(matches){
                     break;
                 }
@@ -275,8 +275,15 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException {
             try {
+                String requestUri=request.getRequestURI();
+                String contextPath=request.getContextPath();
+                //上下文根直接跳转到主页
+                if(contextPath.equals(requestUri)||(contextPath+"/").equals(requestUri)){
+                    response.sendRedirect(contextPath+loginPage);
+                    return;
+                }
                 //无需鉴权URI
-                if(this.isExcludeUri(request.getRequestURI())){
+                if(this.isExcludeUri(request.getContextPath(),requestUri)){
                     filterChain.doFilter(request, response);
                     return;
                 }
